@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cero Grados — Cuánto separar al día</title>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#eaf6fb;--card:#fff;--ink:#0d3b4f;--mute:#5b7f8f;--acc:#0aa5c9;--acc2:#ff5d8f;--line:#cfe6ef}
+@media(prefers-color-scheme:dark){:root{--bg:#08222d;--card:#0f3344;--ink:#e6f6fb;--mute:#8fb5c4;--line:#1d4b60}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif;padding:16px;display:flex;justify-content:center}
+main{width:100%;max-width:520px;display:grid;gap:14px}
+h1,h2,.big{font-family:Fredoka,Nunito,sans-serif;margin:0}
+h1{font-size:1.5rem}
+.sub{color:var(--mute);margin:2px 0 0;font-size:.95rem}
+section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
+h2{font-size:1.1rem;margin-bottom:10px}
+label{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;font-weight:600}
+input{width:110px;font:inherit;font-weight:800;text-align:right;padding:9px 10px;border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--ink)}
+input:focus{outline:3px solid var(--acc);border-color:var(--acc)}
+.hero{background:var(--acc);color:#fff;border:0;text-align:center}
+.hero .big{font-size:3rem;line-height:1.1}
+.hero p{margin:4px 0 0;opacity:.95}
+.row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--line)}
+.row:last-child{border:0}.row b{font-weight:800}
+.pink{color:var(--acc2)}
+.note{font-size:.85rem;color:var(--mute);margin:8px 0 0}
+</style>
+</head>
+<body>
+<main>
+<header><h1>Cero Grados — cuánto separar al día</h1><p class="sub">De cada día de ventas, aparta lo necesario para pagar internet, luz y agua.</p></header>
+
+<section class="hero" aria-live="polite">
+<p>Separa cada día</p>
+<div class="big" id="daily">S/ 0.00</div>
+<p id="eq">—</p>
+</section>
+
+<section>
+<h2>Gastos fijos del mes (S/)</h2>
+<label>Internet <input id="internet" type="number" min="0" step="0.5" inputmode="decimal"></label>
+<label>Luz <input id="luz" type="number" min="0" step="0.5" inputmode="decimal"></label>
+<label>Agua <input id="agua" type="number" min="0" step="0.5" inputmode="decimal"></label>
+<label>Días que vendes al mes <input id="dias" type="number" min="1" max="31" inputmode="numeric"></label>
+<label>Precio de la raspadilla <input id="precio" type="number" min="0.5" step="0.5" inputmode="decimal"></label>
+<p class="note">Los valores se guardan en este dispositivo. Ajusta los montos a tus recibos reales.</p>
+</section>
+
+<section>
+<h2>Resumen</h2>
+<div class="row"><span>Total gastos fijos al mes</span><b id="total">S/ 0.00</b></div>
+<div class="row"><span>Raspadillas por día solo para cubrirlos</span><b id="rasp">0</b></div>
+<div class="row"><span>Separar por semana (7 días)</span><b id="sem">S/ 0.00</b></div>
+</section>
+
+<section>
+<h2>Cierre del día</h2>
+<label>Ventas de hoy (S/) <input id="hoy" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0"></label>
+<div class="row"><span>Separar para gastos fijos</span><b id="sep" class="pink">S/ 0.00</b></div>
+<div class="row"><span>Te queda del día</span><b id="queda">S/ 0.00</b></div>
+<div class="row"><span>Porcentaje de tus ventas</span><b id="pct">—</b></div>
+<p class="note" id="aviso"></p>
+</section>
+</main>
+<script>
+const $=id=>document.getElementById(id);
+const ids=['internet','luz','agua','dias','precio','hoy'];
+const def={internet:60,luz:80,agua:30,dias:30,precio:5,hoy:''};
+const money=n=>'S/ '+n.toFixed(2);
+let saved={};try{saved=JSON.parse(localStorage.getItem('cg_sep')||'{}')}catch(e){}
+ids.forEach(i=>{$(i).value=saved[i]!==undefined?saved[i]:def[i];$(i).addEventListener('input',calc)});
+function calc(){
+ const v=i=>Math.max(0,parseFloat($(i).value)||0);
+ const total=v('internet')+v('luz')+v('agua');
+ const dias=Math.max(1,v('dias')),precio=v('precio')||5;
+ const daily=total/dias;
+ $('daily').textContent=money(daily);
+ $('eq').textContent='Equivale a '+Math.ceil(daily/precio)+' raspadillas de S/ '+precio.toFixed(2);
+ $('total').textContent=money(total);
+ $('rasp').textContent=Math.ceil(daily/precio);
+ $('sem').textContent=money(daily*7);
+ const hoy=v('hoy');
+ const sep=Math.min(daily,hoy);
+ $('sep').textContent=money(sep);
+ $('queda').textContent=money(hoy-sep);
+ $('pct').textContent=hoy>0?(daily/hoy*100).toFixed(1)+'%':'—';
+ $('aviso').textContent=hoy>0&&hoy<daily?'Hoy no alcanzó a cubrir la meta diaria. Faltaron '+money(daily-hoy)+'.':'';
+ try{const o={};ids.forEach(i=>o[i]=$(i).value);localStorage.setItem('cg_sep',JSON.stringify(o))}catch(e){}
+}
+calc();
+</script>
+</body>
+</html>
