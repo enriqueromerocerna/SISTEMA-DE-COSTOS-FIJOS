@@ -50,6 +50,13 @@ input:focus{outline:3px solid color-mix(in srgb,var(--acc) 40%,transparent);bord
 .gi{display:flex;align-items:center;gap:8px;padding:7px 10px;margin-top:6px;background:var(--soft);border:1px solid var(--line);border-radius:10px;animation:in .25s ease}
 .gi span{flex:1;font-weight:600}.gi small{color:var(--mute);font-weight:800}
 .gi button{border:0;background:none;color:var(--mute);font-size:1.2rem;cursor:pointer;border-radius:8px}.gi button:hover{color:var(--acc2)}
+.link{border:0;background:none;color:var(--acc);font:inherit;font-weight:800;cursor:pointer;padding:0;text-decoration:underline}
+header .sub{display:flex;gap:14px;align-items:center;flex-wrap:wrap}
+#login{position:fixed;inset:0;z-index:20;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:16px}
+#login.off{display:none}
+#login form{width:100%;max-width:360px;background:var(--card);border:1px solid var(--line);border-radius:18px;padding:22px;display:grid;gap:10px}
+#login input{width:100%;text-align:left}
+#lerr{color:var(--acc2);font-weight:700;min-height:1.2em;margin:0;font-size:.9rem}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
 .btn{width:100%;border:0;border-radius:14px;padding:13px;font:inherit;font-weight:800;font-size:1rem;background:var(--acc2);color:#fff;cursor:pointer;margin-top:10px;transition:transform .12s,filter .15s}
 .btn:hover{filter:brightness(1.07)}.btn:active{transform:scale(.97)}
@@ -78,8 +85,16 @@ input:focus{outline:3px solid color-mix(in srgb,var(--acc) 40%,transparent);bord
 </style>
 </head>
 <body>
+<div id="login"><form id="lf">
+ <h1>Cero Grados</h1><p class="sub" style="margin:0 0 6px">Ingresa para ver tus cierres y gastos.</p>
+ <input id="lmail" type="email" autocomplete="username" placeholder="Correo" required>
+ <input id="lpass" type="password" autocomplete="current-password" placeholder="Contraseña" required>
+ <p id="lerr" role="alert"></p>
+ <button class="btn" style="margin:0">Entrar</button>
+</form></div>
 <main>
-<header><h1>Cero Grados — costos fijos</h1><p class="sub">Aparta cada día lo que toca para los gastos de la casa y del local.</p></header>
+<header><h1>Cero Grados — costos fijos</h1><p class="sub">Aparta cada día lo que toca para los gastos de la casa y del local.</p>
+<p class="sub"><span id="sync">Conectando…</span><button class="link" id="salir" type="button">Cerrar sesión</button></p></header>
 
 <section class="hero" aria-live="polite">
  <div><p>Separa cada día</p><div class="big" id="daily">S/ 0.00</div><p id="eq">—</p></div>
@@ -177,14 +192,30 @@ input:focus{outline:3px solid color-mix(in srgb,var(--acc) 40%,transparent);bord
 </main>
 <div id="toast" role="status"></div>
 
-<script>
+<script type="module">
+import {initializeApp} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+import {getAuth,onAuthStateChanged,signInWithEmailAndPassword,signOut} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+import {initializeFirestore,persistentLocalCache,persistentMultipleTabManager,doc,setDoc,deleteDoc,collection,onSnapshot} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+// === PEGA AQUÍ la configuración de tu proyecto Firebase ===
+const firebaseConfig={
+  apiKey:"PEGA_AQUI",
+  authDomain:"PEGA_AQUI",
+  projectId:"PEGA_AQUI",
+  storageBucket:"PEGA_AQUI",
+  messagingSenderId:"PEGA_AQUI",
+  appId:"PEGA_AQUI"
+};
+// ==========================================================
+let db,auth,unsubs=[];
 const $=id=>document.getElementById(id);
 const money=n=>'S/ '+n.toFixed(2);
 const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}};
 const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const CFG=['internet','luz','agua','servicios','alquiler','dias','precio'];
 const cfg=Object.assign({internet:60,luz:80,agua:30,servicios:100,alquiler:750,dias:30,precio:5},ld('cg_cfg',{}));
-let cierres=ld('cg_cierres',{});
+const local=ld('cg_cierres',{});
+let cierres={};
 let gastos=[];
 const hoyStr=()=>new Date().toLocaleDateString('sv');
 const num=i=>Math.max(0,parseFloat($(i).value)||0);
@@ -196,7 +227,7 @@ function anim(el,to,fmt){
 }
 function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800)}
 
-CFG.forEach(i=>{$(i).value=cfg[i];$(i).addEventListener('input',()=>{cfg[i]=$(i).value;sv('cg_cfg',cfg);calc()})});
+CFG.forEach(i=>{$(i).value=cfg[i];$(i).addEventListener('input',()=>{cfg[i]=$(i).value;saveCfg();calc()})});
 $('fecha').value=hoyStr();
 function loadDay(){const c=cierres[$('fecha').value];$('yape').value=c?c.yape:'';$('efectivo').value=c?c.efectivo:'';gastos=c&&c.gastos?JSON.parse(JSON.stringify(c.gastos)):[];renderG()}
 loadDay();
@@ -270,7 +301,7 @@ function render(){
     b.className='hist';
     b.innerHTML=`<span class="d">${fmtD(k)}<small>Yape ${money(c.yape)} · Efectivo ${money(c.efectivo)}${gx?` · Gastos aparte ${money(gx)}`:''}</small></span><b class="${t>=daily?'okc':'pink'}">${money(t)}</b><span class="x" role="button" aria-label="Borrar">×</span>`;
     b.onclick=ev=>{
-      if(ev.target.classList.contains('x')){if(confirm('¿Borrar el cierre del '+fmtD(k)+'?')){delete cierres[k];sv('cg_cierres',cierres);loadDay();calc();toast('Cierre borrado')}return}
+      if(ev.target.classList.contains('x')){if(confirm('¿Borrar el cierre del '+fmtD(k)+'?')){delete cierres[k];deleteDoc(doc(db,'cierres',k)).catch(()=>toast('No se pudo borrar'));loadDay();calc();toast('Cierre borrado')}return}
       $('fecha').value=k;loadDay();calc();tab('hoy');
     };
     $('lista').appendChild(b);
@@ -280,7 +311,7 @@ function render(){
 $('guardar').onclick=()=>{
   const y=num('yape'),e=num('efectivo');
   if(y+e===0&&!confirm('El cierre está en S/ 0.00. ¿Guardarlo igual?'))return;
-  cierres[$('fecha').value]={yape:y,efectivo:e,gastos:JSON.parse(JSON.stringify(gastos))};sv('cg_cierres',cierres);
+  cierres[$('fecha').value]={yape:y,efectivo:e,gastos:JSON.parse(JSON.stringify(gastos))};setDoc(doc(db,'cierres',$('fecha').value),cierres[$('fecha').value]).catch(()=>toast('No se pudo guardar en la nube'));
   calc();toast('Cierre del '+fmtD($('fecha').value)+' guardado');
 };
 
@@ -312,6 +343,59 @@ function tab(t){
 }
 document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
 $('cup').onclick=()=>{const {daily}=goalNow(),h=num('yape')+num('efectivo');toast(h>=daily?'¡Meta del día cubierta!':'Te faltan '+money(Math.max(0,daily-h))+' para la meta')};
+function saveCfg(){clearTimeout(saveCfg._t);saveCfg._t=setTimeout(()=>setDoc(doc(db,'config','principal'),{...cfg}).catch(()=>toast('No se pudo guardar los gastos')),600)}
+const setSync=t=>$('sync').textContent='☁ '+t;
+function isDirty(){
+  const c=cierres[$('fecha').value],y=num('yape'),e=num('efectivo');
+  return c?!(c.yape===y&&c.efectivo===e&&JSON.stringify(c.gastos||[])===JSON.stringify(gastos)):!!(y||e||gastos.length);
+}
+let migrated=false;
+function migrate(){
+  if(migrated)return;migrated=true;
+  const ks=Object.keys(local).filter(k=>!cierres[k]);
+  if(!ks.length)return;
+  ks.forEach(k=>setDoc(doc(db,'cierres',k),local[k]));
+  try{localStorage.removeItem('cg_cierres')}catch(e){}
+  toast(ks.length+' cierres de este aparato subidos a la nube');
+}
+function start(){
+  unsubs.push(onSnapshot(doc(db,'config','principal'),s=>{
+    const d=s.data();if(!d)return;
+    CFG.forEach(i=>{if(d[i]!==undefined&&document.activeElement!==$(i)){cfg[i]=d[i];$(i).value=d[i]}});
+    calc();
+  }));
+  unsubs.push(onSnapshot(collection(db,'cierres'),s=>{
+    const dirty=isDirty(),o={};
+    s.forEach(d=>o[d.id]=d.data());
+    cierres=o;
+    if(!dirty)loadDay();
+    calc();
+    setSync(!navigator.onLine?'Sin conexión: se guardará al volver':s.metadata.hasPendingWrites?'Guardando…':'Sincronizado');
+    if(!s.metadata.fromCache)migrate();
+  },()=>setSync('Error al sincronizar')));
+}
+function stop(){unsubs.forEach(u=>u());unsubs=[];cierres={};migrated=false}
+window.addEventListener('offline',()=>setSync('Sin conexión: se guardará al volver'));
+window.addEventListener('online',()=>setSync('Reconectando…'));
+
+if(firebaseConfig.apiKey.startsWith('PEGA')){
+  $('lerr').textContent='Falta pegar la configuración de Firebase en index.html.';
+  $('lf').querySelector('button').disabled=true;
+}else{
+  const app=initializeApp(firebaseConfig);
+  db=initializeFirestore(app,{localCache:persistentLocalCache({tabManager:persistentMultipleTabManager()})});
+  auth=getAuth(app);
+  onAuthStateChanged(auth,u=>{
+    $('login').classList.toggle('off',!!u);
+    if(u){setSync('Conectando…');start()}else{stop();calc()}
+  });
+  $('lf').onsubmit=async ev=>{
+    ev.preventDefault();$('lerr').textContent='';
+    try{await signInWithEmailAndPassword(auth,$('lmail').value.trim(),$('lpass').value);$('lpass').value=''}
+    catch(e){$('lerr').textContent=e.code==='auth/network-request-failed'?'Sin internet. Intenta de nuevo.':'Correo o contraseña incorrectos.'}
+  };
+  $('salir').onclick=()=>signOut(auth);
+}
 tab('hoy');calc();
 </script>
 </body>
