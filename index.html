@@ -39,6 +39,17 @@ input:focus{outline:3px solid color-mix(in srgb,var(--acc) 40%,transparent);bord
 .pay div:focus-within{border-color:var(--acc)}
 .pay span{display:flex;align-items:center;gap:6px;font-weight:800;font-size:.95rem}
 .pay input{width:100%;margin-top:6px;font-size:1.2rem}
+.gx{border:2px dashed var(--line);border-radius:14px;padding:12px;margin:6px 0 10px}
+.gx h3{font-family:Fredoka,Nunito,sans-serif;font-size:1rem;margin:0 0 2px}
+.gform{display:grid;grid-template-columns:1fr 84px 92px 42px;gap:6px;margin-top:8px}
+.gform input,.gform select,.gform button{width:100%;font:inherit;font-weight:700;padding:9px 8px;border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--ink)}
+.gform input[type=number]{text-align:right}
+.gform select option{color:#0d3b4f}
+.gform button{background:var(--acc);border-color:var(--acc);color:#fff;font-size:1.2rem;cursor:pointer;padding:0;transition:transform .12s}
+.gform button:active{transform:scale(.92)}
+.gi{display:flex;align-items:center;gap:8px;padding:7px 10px;margin-top:6px;background:var(--soft);border:1px solid var(--line);border-radius:10px;animation:in .25s ease}
+.gi span{flex:1;font-weight:600}.gi small{color:var(--mute);font-weight:800}
+.gi button{border:0;background:none;color:var(--mute);font-size:1.2rem;cursor:pointer;border-radius:8px}.gi button:hover{color:var(--acc2)}
 .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
 .btn{width:100%;border:0;border-radius:14px;padding:13px;font:inherit;font-weight:800;font-size:1rem;background:var(--acc2);color:#fff;cursor:pointer;margin-top:10px;transition:transform .12s,filter .15s}
 .btn:hover{filter:brightness(1.07)}.btn:active{transform:scale(.97)}
@@ -95,9 +106,24 @@ input:focus{outline:3px solid color-mix(in srgb,var(--acc) 40%,transparent);bord
    <div><span><i class="dot" style="background:#7b2fbe"></i>Yape</span><input id="yape" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0"></div>
    <div><span><i class="dot" style="background:var(--ok)"></i>Efectivo</span><input id="efectivo" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0"></div>
   </div>
+  <div class="gx">
+   <h3>Gastos aparte del día</h3>
+   <p class="note" style="margin:2px 0 0">Compras después de cerrar (casa, bebidas, etc.). Se restan de Yape o efectivo.</p>
+   <div class="gform">
+    <input id="gcon" type="text" placeholder="Ej. bebida" maxlength="40" aria-label="Concepto">
+    <input id="gmon" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0" aria-label="Monto">
+    <select id="gmet" aria-label="Pagado con"><option value="yape">Yape</option><option value="efectivo">Efectivo</option></select>
+    <button id="gadd" aria-label="Agregar gasto">+</button>
+   </div>
+   <div id="glist"></div>
+  </div>
   <div class="row"><span>Ventas del día</span><b id="hoyTot">S/ 0.00</b></div>
+  <div class="row"><span>Gastos aparte</span><b id="gTot">S/ 0.00</b></div>
+  <div class="row"><span>Yape que queda</span><b id="qY">S/ 0.00</b></div>
+  <div class="row"><span>Efectivo que queda</span><b id="qE">S/ 0.00</b></div>
+  <div class="row"><span>Total real que queda</span><b id="qT">S/ 0.00</b></div>
   <div class="row"><span>Separar para gastos fijos</span><b id="sep" class="pink">S/ 0.00</b></div>
-  <div class="row"><span>Te queda del día</span><b id="queda">S/ 0.00</b></div>
+  <div class="row"><span>Te queda después de separar</span><b id="queda">S/ 0.00</b></div>
   <div class="row"><span>Porcentaje de tus ventas</span><b id="pct">—</b></div>
   <p class="note" id="aviso"></p>
   <button class="btn" id="guardar">Guardar cierre</button>
@@ -159,6 +185,7 @@ const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
 const CFG=['internet','luz','agua','servicios','alquiler','dias','precio'];
 const cfg=Object.assign({internet:60,luz:80,agua:30,servicios:100,alquiler:750,dias:30,precio:5},ld('cg_cfg',{}));
 let cierres=ld('cg_cierres',{});
+let gastos=[];
 const hoyStr=()=>new Date().toLocaleDateString('sv');
 const num=i=>Math.max(0,parseFloat($(i).value)||0);
 const fmtD=d=>new Date(d+'T12:00').toLocaleDateString('es-PE',{weekday:'short',day:'numeric',month:'short'});
@@ -171,7 +198,7 @@ function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');cle
 
 CFG.forEach(i=>{$(i).value=cfg[i];$(i).addEventListener('input',()=>{cfg[i]=$(i).value;sv('cg_cfg',cfg);calc()})});
 $('fecha').value=hoyStr();
-function loadDay(){const c=cierres[$('fecha').value];$('yape').value=c?c.yape:'';$('efectivo').value=c?c.efectivo:''}
+function loadDay(){const c=cierres[$('fecha').value];$('yape').value=c?c.yape:'';$('efectivo').value=c?c.efectivo:'';gastos=c&&c.gastos?JSON.parse(JSON.stringify(c.gastos)):[];renderG()}
 loadDay();
 $('fecha').addEventListener('change',()=>{loadDay();calc()});
 ['yape','efectivo'].forEach(i=>$(i).addEventListener('input',calc));
@@ -189,12 +216,17 @@ function calc(){
   $('sem').textContent=money(daily*7);
 
   const y=num('yape'),e=num('efectivo'),hoy=y+e,sep=Math.min(daily,hoy);
-  anim($('hoyTot'),hoy,money);anim($('sep'),sep,money);anim($('queda'),hoy-sep,money);
+  const gY=gastos.filter(x=>x.m==='yape').reduce((a,x)=>a+x.v,0),gE=gastos.filter(x=>x.m==='efectivo').reduce((a,x)=>a+x.v,0),real=hoy-gY-gE;
+  anim($('hoyTot'),hoy,money);anim($('sep'),sep,money);anim($('queda'),real-sep,money);
+  anim($('gTot'),gY+gE,money);anim($('qY'),y-gY,money);anim($('qE'),e-gE,money);anim($('qT'),real,money);
+  [['qY',y-gY],['qE',e-gE],['qT',real]].forEach(([i,v])=>$(i).classList.toggle('pink',v<0));
   $('pct').textContent=hoy>0?(daily/hoy*100).toFixed(1)+'%':'—';
-  $('aviso').textContent=hoy>0&&hoy<daily?'Hoy no alcanzó la meta diaria. Faltaron '+money(daily-hoy)+'.':(hoy>=daily&&daily>0?'Meta del día cubierta. Buen cierre.':'');
+  const neg=y-gY<0?'Los gastos en Yape superan lo que ingresó por Yape. ':(e-gE<0?'Los gastos en efectivo superan el efectivo del día. ':'');
+  const meta=hoy>0&&hoy<daily?'Hoy no alcanzó la meta diaria. Faltaron '+money(daily-hoy)+'.':(hoy>=daily&&daily>0?'Meta del día cubierta. Buen cierre.':'');
+  $('aviso').textContent=neg+meta;
   $('aviso').className='note'+(hoy>=daily&&daily>0&&hoy>0?' okc':'');
 
-  const c=cierres[$('fecha').value],same=c&&c.yape===y&&c.efectivo===e;
+  const c=cierres[$('fecha').value],same=c&&c.yape===y&&c.efectivo===e&&JSON.stringify(c.gastos||[])===JSON.stringify(gastos);
   $('badge').textContent=same?'Guardado':(c?'Cambios sin guardar':'Sin guardar');
   $('badge').className='badge'+(same?' saved':'');
 
@@ -234,9 +266,9 @@ function render(){
 
   $('lista').innerHTML=keys.length?'':'<p class="empty">Todavía no guardaste ningún cierre.</p>';
   keys.slice(0,30).forEach(k=>{
-    const c=cierres[k],t=c.yape+c.efectivo,b=document.createElement('button');
+    const c=cierres[k],t=c.yape+c.efectivo,gx=(c.gastos||[]).reduce((a,x)=>a+x.v,0),b=document.createElement('button');
     b.className='hist';
-    b.innerHTML=`<span class="d">${fmtD(k)}<small>Yape ${money(c.yape)} · Efectivo ${money(c.efectivo)}</small></span><b class="${t>=daily?'okc':'pink'}">${money(t)}</b><span class="x" role="button" aria-label="Borrar">×</span>`;
+    b.innerHTML=`<span class="d">${fmtD(k)}<small>Yape ${money(c.yape)} · Efectivo ${money(c.efectivo)}${gx?` · Gastos aparte ${money(gx)}`:''}</small></span><b class="${t>=daily?'okc':'pink'}">${money(t)}</b><span class="x" role="button" aria-label="Borrar">×</span>`;
     b.onclick=ev=>{
       if(ev.target.classList.contains('x')){if(confirm('¿Borrar el cierre del '+fmtD(k)+'?')){delete cierres[k];sv('cg_cierres',cierres);loadDay();calc();toast('Cierre borrado')}return}
       $('fecha').value=k;loadDay();calc();tab('hoy');
@@ -248,9 +280,29 @@ function render(){
 $('guardar').onclick=()=>{
   const y=num('yape'),e=num('efectivo');
   if(y+e===0&&!confirm('El cierre está en S/ 0.00. ¿Guardarlo igual?'))return;
-  cierres[$('fecha').value]={yape:y,efectivo:e};sv('cg_cierres',cierres);
+  cierres[$('fecha').value]={yape:y,efectivo:e,gastos:JSON.parse(JSON.stringify(gastos))};sv('cg_cierres',cierres);
   calc();toast('Cierre del '+fmtD($('fecha').value)+' guardado');
 };
+
+function renderG(){
+  $('glist').innerHTML='';
+  gastos.forEach((g,i)=>{
+    const d=document.createElement('div');d.className='gi';
+    d.innerHTML=`<span></span><small>${g.m==='yape'?'Yape':'Efectivo'}</small><b>${money(g.v)}</b><button aria-label="Quitar gasto">×</button>`;
+    d.firstChild.textContent=g.c||'Gasto';
+    d.querySelector('button').onclick=()=>{gastos.splice(i,1);renderG();calc()};
+    $('glist').appendChild(d);
+  });
+}
+function addG(){
+  const v=num('gmon');
+  if(!v){$('gmon').focus();toast('Escribe el monto del gasto');return}
+  gastos.push({c:$('gcon').value.trim(),v,m:$('gmet').value});
+  $('gcon').value='';$('gmon').value='';$('gcon').focus();
+  renderG();calc();
+}
+$('gadd').onclick=addG;
+['gcon','gmon'].forEach(i=>$(i).addEventListener('keydown',ev=>{if(ev.key==='Enter')addG()}));
 
 const names=['hoy','hist','gastos'];
 function tab(t){
