@@ -3,93 +3,264 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Cero Grados — Cuánto separar al día</title>
+<title>Cero Grados — Costos fijos y cierre del día</title>
 <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Nunito:wght@400;600;800&display=swap" rel="stylesheet">
 <style>
-:root{--bg:#eaf6fb;--card:#fff;--ink:#0d3b4f;--mute:#5b7f8f;--acc:#0aa5c9;--acc2:#ff5d8f;--line:#cfe6ef}
-@media(prefers-color-scheme:dark){:root{--bg:#08222d;--card:#0f3344;--ink:#e6f6fb;--mute:#8fb5c4;--line:#1d4b60}}
+:root{--bg:#eaf6fb;--card:#fff;--ink:#0d3b4f;--mute:#5b7f8f;--acc:#0aa5c9;--acc2:#ff5d8f;--ok:#14a86b;--line:#cfe6ef;--soft:#f3fafd}
+@media(prefers-color-scheme:dark){:root{--bg:#08222d;--card:#0f3344;--ink:#e6f6fb;--mute:#8fb5c4;--line:#1d4b60;--soft:#0b2a39}}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font-family:Nunito,system-ui,sans-serif;padding:16px;display:flex;justify-content:center}
-main{width:100%;max-width:520px;display:grid;gap:14px}
+main{width:100%;max-width:540px;display:grid;gap:14px;align-content:start}
 h1,h2,.big{font-family:Fredoka,Nunito,sans-serif;margin:0}
-h1{font-size:1.5rem}
-.sub{color:var(--mute);margin:2px 0 0;font-size:.95rem}
+h1{font-size:1.45rem}.sub{color:var(--mute);margin:2px 0 0;font-size:.92rem}
 section{background:var(--card);border:1px solid var(--line);border-radius:18px;padding:16px}
 h2{font-size:1.1rem;margin-bottom:10px}
 label{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 0;font-weight:600}
-input{width:110px;font:inherit;font-weight:800;text-align:right;padding:9px 10px;border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--ink)}
-input:focus{outline:3px solid var(--acc);border-color:var(--acc)}
-.hero{background:var(--acc);color:#fff;border:0;text-align:center}
-.hero .big{font-size:3rem;line-height:1.1}
-.hero p{margin:4px 0 0;opacity:.95}
-.row{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--line)}
+input{width:120px;font:inherit;font-weight:800;text-align:right;padding:9px 10px;border:2px solid var(--line);border-radius:10px;background:transparent;color:var(--ink);transition:border-color .15s,transform .15s}
+input[type=date]{width:auto;text-align:left}
+input:focus{outline:3px solid color-mix(in srgb,var(--acc) 40%,transparent);border-color:var(--acc);transform:scale(1.02)}
+.hero{background:linear-gradient(135deg,var(--acc),#0885a3);color:#fff;border:0;display:flex;align-items:center;gap:14px;justify-content:space-between}
+.hero .big{font-size:2.8rem;line-height:1.1}.hero p{margin:3px 0 0;opacity:.95}
+#cup{width:92px;flex:none;cursor:pointer;filter:drop-shadow(0 6px 10px rgba(0,0,0,.2));transition:transform .25s}
+#cup:hover{transform:rotate(-6deg) scale(1.06)}#cup:active{transform:scale(.94)}
+#fill,#scoop{transition:all .7s cubic-bezier(.3,1.3,.5,1)}
+.tabs{display:grid;grid-template-columns:repeat(3,1fr);background:var(--card);border:1px solid var(--line);border-radius:14px;padding:4px;position:relative}
+.tabs button{position:relative;z-index:1;border:0;background:none;font:inherit;font-weight:800;color:var(--mute);padding:10px 4px;border-radius:10px;cursor:pointer;transition:color .2s}
+.tabs button.on{color:#fff}
+.pill{position:absolute;top:4px;bottom:4px;left:4px;width:calc((100% - 8px)/3);background:var(--acc);border-radius:10px;transition:transform .3s cubic-bezier(.3,1.2,.5,1)}
+.panel{display:none;gap:14px}.panel.on{display:grid;animation:in .3s ease}
+@keyframes in{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+.row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px dashed var(--line)}
 .row:last-child{border:0}.row b{font-weight:800}
-.pink{color:var(--acc2)}
+.pink{color:var(--acc2)}.okc{color:var(--ok)}
 .note{font-size:.85rem;color:var(--mute);margin:8px 0 0}
+.pay{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:4px 0 8px}
+.pay div{border:2px solid var(--line);border-radius:14px;padding:10px;background:var(--soft);transition:border-color .2s}
+.pay div:focus-within{border-color:var(--acc)}
+.pay span{display:flex;align-items:center;gap:6px;font-weight:800;font-size:.95rem}
+.pay input{width:100%;margin-top:6px;font-size:1.2rem}
+.dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+.btn{width:100%;border:0;border-radius:14px;padding:13px;font:inherit;font-weight:800;font-size:1rem;background:var(--acc2);color:#fff;cursor:pointer;margin-top:10px;transition:transform .12s,filter .15s}
+.btn:hover{filter:brightness(1.07)}.btn:active{transform:scale(.97)}
+.badge{font-size:.78rem;font-weight:800;padding:3px 9px;border-radius:99px;background:var(--soft);color:var(--mute);border:1px solid var(--line)}
+.badge.saved{background:color-mix(in srgb,var(--ok) 15%,transparent);color:var(--ok);border-color:var(--ok)}
+.head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}.head h2{margin:0}
+.bar{height:12px;background:var(--soft);border:1px solid var(--line);border-radius:99px;overflow:hidden;margin:8px 0 4px}
+.bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--acc),var(--acc2));border-radius:99px;transition:width .8s cubic-bezier(.3,1,.5,1)}
+.chart{position:relative;display:flex;align-items:flex-end;gap:4px;height:130px;margin-top:10px;padding-top:6px}
+.chart button{flex:1;border:0;background:none;padding:0;height:100%;display:flex;align-items:flex-end;cursor:pointer;position:relative}
+.chart button i{display:block;width:100%;min-height:3px;border-radius:6px 6px 2px 2px;background:var(--line);transition:height .6s cubic-bezier(.3,1.2,.5,1),filter .15s}
+.chart button.hit i{background:var(--acc)}.chart button.sel i{background:var(--acc2)}
+.chart button:hover i{filter:brightness(1.15)}
+.chart button:focus-visible{outline:2px solid var(--acc);border-radius:6px}
+.goal{position:absolute;left:0;right:0;border-top:2px dashed var(--ok);pointer-events:none;transition:bottom .5s}
+.goal em{position:absolute;right:0;top:-18px;font-size:.72rem;font-style:normal;font-weight:800;color:var(--ok)}
+.tip{font-size:.85rem;color:var(--mute);min-height:1.3em;margin:8px 0 0}
+.hist{display:flex;align-items:center;gap:10px;width:100%;text-align:left;border:1px solid var(--line);background:var(--soft);color:var(--ink);font:inherit;border-radius:12px;padding:10px 12px;margin-top:8px;cursor:pointer;transition:transform .15s,border-color .15s}
+.hist:hover{transform:translateX(3px);border-color:var(--acc)}
+.hist .d{flex:1;font-weight:800;text-transform:capitalize}.hist small{display:block;color:var(--mute);font-weight:600}
+.hist .x{border:0;background:none;color:var(--mute);font-size:1.2rem;cursor:pointer;padding:2px 6px;border-radius:8px}.hist .x:hover{color:var(--acc2)}
+.empty{color:var(--mute);text-align:center;padding:14px 0;margin:0}
+#toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,90px);background:var(--ink);color:var(--bg);padding:11px 18px;border-radius:99px;font-weight:800;transition:transform .35s cubic-bezier(.3,1.4,.5,1);z-index:9}
+#toast.show{transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
 </style>
 </head>
 <body>
 <main>
-<header><h1>Cero Grados — cuánto separar al día</h1><p class="sub">De cada día de ventas, aparta lo necesario para pagar internet, luz y agua.</p></header>
+<header><h1>Cero Grados — costos fijos</h1><p class="sub">Aparta cada día lo que toca para los gastos de la casa y del local.</p></header>
 
 <section class="hero" aria-live="polite">
-<p>Separa cada día</p>
-<div class="big" id="daily">S/ 0.00</div>
-<p id="eq">—</p>
+ <div><p>Separa cada día</p><div class="big" id="daily">S/ 0.00</div><p id="eq">—</p></div>
+ <svg id="cup" viewBox="0 0 100 120" role="img" aria-label="Avance de hoy hacia la meta diaria" title="Avance de hoy">
+  <defs><clipPath id="cp"><path d="M15 34 L85 34 L70 112 L30 112 Z"/></clipPath></defs>
+  <circle id="scoop" cx="50" cy="30" r="26" fill="#ff5d8f" opacity="0" transform="scale(.6)" style="transform-origin:50px 34px"/>
+  <path d="M15 34 L85 34 L70 112 L30 112 Z" fill="rgba(255,255,255,.25)"/>
+  <rect id="fill" x="0" y="112" width="100" height="0" fill="#fff" clip-path="url(#cp)"/>
+  <path d="M15 34 L85 34 L70 112 L30 112 Z" fill="none" stroke="#fff" stroke-width="4" stroke-linejoin="round"/>
+ </svg>
 </section>
 
-<section>
-<h2>Gastos fijos del mes (S/)</h2>
-<label>Internet <input id="internet" type="number" min="0" step="0.5" inputmode="decimal"></label>
-<label>Luz <input id="luz" type="number" min="0" step="0.5" inputmode="decimal"></label>
-<label>Agua <input id="agua" type="number" min="0" step="0.5" inputmode="decimal"></label>
-<label>Días que vendes al mes <input id="dias" type="number" min="1" max="31" inputmode="numeric"></label>
-<label>Precio de la raspadilla <input id="precio" type="number" min="0.5" step="0.5" inputmode="decimal"></label>
-<p class="note">Los valores se guardan en este dispositivo. Ajusta los montos a tus recibos reales.</p>
-</section>
+<nav class="tabs" role="tablist"><span class="pill" id="pill"></span>
+ <button class="on" data-t="hoy" role="tab">Cierre del día</button>
+ <button data-t="hist" role="tab">Historial</button>
+ <button data-t="gastos" role="tab">Gastos</button>
+</nav>
 
-<section>
-<h2>Resumen</h2>
-<div class="row"><span>Total gastos fijos al mes</span><b id="total">S/ 0.00</b></div>
-<div class="row"><span>Raspadillas por día solo para cubrirlos</span><b id="rasp">0</b></div>
-<div class="row"><span>Separar por semana (7 días)</span><b id="sem">S/ 0.00</b></div>
-</section>
+<div class="panel on" id="p-hoy">
+ <section>
+  <div class="head"><h2>Cierre del día</h2><span class="badge" id="badge">Sin guardar</span></div>
+  <label>Fecha <input id="fecha" type="date"></label>
+  <div class="pay">
+   <div><span><i class="dot" style="background:#7b2fbe"></i>Yape</span><input id="yape" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0"></div>
+   <div><span><i class="dot" style="background:var(--ok)"></i>Efectivo</span><input id="efectivo" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0"></div>
+  </div>
+  <div class="row"><span>Ventas del día</span><b id="hoyTot">S/ 0.00</b></div>
+  <div class="row"><span>Separar para gastos fijos</span><b id="sep" class="pink">S/ 0.00</b></div>
+  <div class="row"><span>Te queda del día</span><b id="queda">S/ 0.00</b></div>
+  <div class="row"><span>Porcentaje de tus ventas</span><b id="pct">—</b></div>
+  <p class="note" id="aviso"></p>
+  <button class="btn" id="guardar">Guardar cierre</button>
+ </section>
+</div>
 
-<section>
-<h2>Cierre del día</h2>
-<label>Ventas de hoy (S/) <input id="hoy" type="number" min="0" step="0.5" inputmode="decimal" placeholder="0"></label>
-<div class="row"><span>Separar para gastos fijos</span><b id="sep" class="pink">S/ 0.00</b></div>
-<div class="row"><span>Te queda del día</span><b id="queda">S/ 0.00</b></div>
-<div class="row"><span>Porcentaje de tus ventas</span><b id="pct">—</b></div>
-<p class="note" id="aviso"></p>
-</section>
+<div class="panel" id="p-hist">
+ <section>
+  <div class="head"><h2 id="mesTit">Este mes</h2><b id="mesPct">0%</b></div>
+  <div class="bar"><i id="mesBar"></i></div>
+  <p class="note" id="mesTxt"></p>
+ </section>
+ <section>
+  <h2>Últimos 14 días</h2>
+  <div class="chart" id="chart"><div class="goal" id="goalLine"><em>meta</em></div></div>
+  <p class="tip" id="tip">Toca una barra para ver o editar ese día.</p>
+ </section>
+ <section>
+  <h2>Cierres guardados</h2>
+  <div id="lista"></div>
+ </section>
+</div>
+
+<div class="panel" id="p-gastos">
+ <section>
+  <h2>Gastos fijos de la casa (S/)</h2>
+  <label>Internet <input id="internet" type="number" min="0" step="0.5" inputmode="decimal"></label>
+  <label>Luz <input id="luz" type="number" min="0" step="0.5" inputmode="decimal"></label>
+  <label>Agua <input id="agua" type="number" min="0" step="0.5" inputmode="decimal"></label>
+ </section>
+ <section>
+  <h2>Gastos fijos del local (S/)</h2>
+  <label>Agua, luz e internet del local <input id="servicios" type="number" min="0" step="0.5" inputmode="decimal"></label>
+  <label>Alquiler del local <input id="alquiler" type="number" min="0" step="0.5" inputmode="decimal"></label>
+ </section>
+ <section>
+  <h2>Ventas</h2>
+  <label>Días que vendes al mes <input id="dias" type="number" min="1" max="31" inputmode="numeric"></label>
+  <label>Precio de la raspadilla <input id="precio" type="number" min="0.5" step="0.5" inputmode="decimal"></label>
+  <p class="note">Se guardan en este dispositivo. Ajusta los montos a tus recibos reales.</p>
+ </section>
+ <section>
+  <h2>Resumen</h2>
+  <div class="row"><span>Casa (internet, luz, agua)</span><b id="tCasa">S/ 0.00</b></div>
+  <div class="row"><span>Local (servicios y alquiler)</span><b id="tLocal">S/ 0.00</b></div>
+  <div class="row"><span>Total gastos fijos al mes</span><b id="total">S/ 0.00</b></div>
+  <div class="row"><span>Raspadillas por día solo para cubrirlos</span><b id="rasp">0</b></div>
+  <div class="row"><span>Separar por semana (7 días)</span><b id="sem">S/ 0.00</b></div>
+ </section>
+</div>
 </main>
+<div id="toast" role="status"></div>
+
 <script>
 const $=id=>document.getElementById(id);
-const ids=['internet','luz','agua','dias','precio','hoy'];
-const def={internet:60,luz:80,agua:30,dias:30,precio:5,hoy:''};
 const money=n=>'S/ '+n.toFixed(2);
-let saved={};try{saved=JSON.parse(localStorage.getItem('cg_sep')||'{}')}catch(e){}
-ids.forEach(i=>{$(i).value=saved[i]!==undefined?saved[i]:def[i];$(i).addEventListener('input',calc)});
-function calc(){
- const v=i=>Math.max(0,parseFloat($(i).value)||0);
- const total=v('internet')+v('luz')+v('agua');
- const dias=Math.max(1,v('dias')),precio=v('precio')||5;
- const daily=total/dias;
- $('daily').textContent=money(daily);
- $('eq').textContent='Equivale a '+Math.ceil(daily/precio)+' raspadillas de S/ '+precio.toFixed(2);
- $('total').textContent=money(total);
- $('rasp').textContent=Math.ceil(daily/precio);
- $('sem').textContent=money(daily*7);
- const hoy=v('hoy');
- const sep=Math.min(daily,hoy);
- $('sep').textContent=money(sep);
- $('queda').textContent=money(hoy-sep);
- $('pct').textContent=hoy>0?(daily/hoy*100).toFixed(1)+'%':'—';
- $('aviso').textContent=hoy>0&&hoy<daily?'Hoy no alcanzó a cubrir la meta diaria. Faltaron '+money(daily-hoy)+'.':'';
- try{const o={};ids.forEach(i=>o[i]=$(i).value);localStorage.setItem('cg_sep',JSON.stringify(o))}catch(e){}
+const ld=(k,d)=>{try{return JSON.parse(localStorage.getItem(k))||d}catch(e){return d}};
+const sv=(k,v)=>{try{localStorage.setItem(k,JSON.stringify(v))}catch(e){}};
+const CFG=['internet','luz','agua','servicios','alquiler','dias','precio'];
+const cfg=Object.assign({internet:60,luz:80,agua:30,servicios:100,alquiler:750,dias:30,precio:5},ld('cg_cfg',{}));
+let cierres=ld('cg_cierres',{});
+const hoyStr=()=>new Date().toLocaleDateString('sv');
+const num=i=>Math.max(0,parseFloat($(i).value)||0);
+const fmtD=d=>new Date(d+'T12:00').toLocaleDateString('es-PE',{weekday:'short',day:'numeric',month:'short'});
+
+function anim(el,to,fmt){
+  const from=el._v||0;el._v=to;const t0=performance.now();
+  (function step(t){const k=Math.min(1,(t-t0)/500),e=1-Math.pow(1-k,3);el.textContent=fmt(from+(to-from)*e);if(k<1)requestAnimationFrame(step)})(t0);
 }
-calc();
+function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(t._t);t._t=setTimeout(()=>t.classList.remove('show'),1800)}
+
+CFG.forEach(i=>{$(i).value=cfg[i];$(i).addEventListener('input',()=>{cfg[i]=$(i).value;sv('cg_cfg',cfg);calc()})});
+$('fecha').value=hoyStr();
+function loadDay(){const c=cierres[$('fecha').value];$('yape').value=c?c.yape:'';$('efectivo').value=c?c.efectivo:''}
+loadDay();
+$('fecha').addEventListener('change',()=>{loadDay();calc()});
+['yape','efectivo'].forEach(i=>$(i).addEventListener('input',calc));
+
+function goalNow(){const total=num('internet')+num('luz')+num('agua')+num('servicios')+num('alquiler');return{total,daily:total/Math.max(1,num('dias'))}}
+
+function calc(){
+  const {total,daily}=goalNow(),precio=num('precio')||5;
+  anim($('daily'),daily,money);
+  $('eq').textContent='Equivale a '+Math.ceil(daily/precio)+' raspadillas de S/ '+precio.toFixed(2);
+  $('total').textContent=money(total);
+  $('tCasa').textContent=money(num('internet')+num('luz')+num('agua'));
+  $('tLocal').textContent=money(num('servicios')+num('alquiler'));
+  $('rasp').textContent=Math.ceil(daily/precio);
+  $('sem').textContent=money(daily*7);
+
+  const y=num('yape'),e=num('efectivo'),hoy=y+e,sep=Math.min(daily,hoy);
+  anim($('hoyTot'),hoy,money);anim($('sep'),sep,money);anim($('queda'),hoy-sep,money);
+  $('pct').textContent=hoy>0?(daily/hoy*100).toFixed(1)+'%':'—';
+  $('aviso').textContent=hoy>0&&hoy<daily?'Hoy no alcanzó la meta diaria. Faltaron '+money(daily-hoy)+'.':(hoy>=daily&&daily>0?'Meta del día cubierta. Buen cierre.':'');
+  $('aviso').className='note'+(hoy>=daily&&daily>0&&hoy>0?' okc':'');
+
+  const c=cierres[$('fecha').value],same=c&&c.yape===y&&c.efectivo===e;
+  $('badge').textContent=same?'Guardado':(c?'Cambios sin guardar':'Sin guardar');
+  $('badge').className='badge'+(same?' saved':'');
+
+  const p=daily>0?Math.min(1,hoy/daily):0,f=$('fill'),h=82*p;
+  f.setAttribute('y',112-h);f.setAttribute('height',h);
+  f.setAttribute('fill',p>=1?'#ff5d8f':'#fff');
+  $('scoop').setAttribute('opacity',p>=1?1:0);$('scoop').style.transform=p>=1?'scale(1)':'scale(.6)';
+  render();
+}
+
+function render(){
+  const {total,daily}=goalNow(),sel=$('fecha').value,ym=sel.slice(0,7);
+  const keys=Object.keys(cierres).sort().reverse();
+  const mes=keys.filter(k=>k.startsWith(ym)),suma=mes.reduce((s,k)=>s+cierres[k].yape+cierres[k].efectivo,0);
+  const pc=total>0?suma/total:0;
+  $('mesTit').textContent=new Date(sel+'T12:00').toLocaleDateString('es-PE',{month:'long',year:'numeric'});
+  $('mesTit').style.textTransform='capitalize';
+  $('mesPct').textContent=Math.round(pc*100)+'%';
+  $('mesBar').style.width=Math.min(100,pc*100)+'%';
+  $('mesTxt').textContent=mes.length?`${mes.length} cierres, ${money(suma)} vendidos. Gastos fijos del mes: ${money(total)}.`:'Aún no hay cierres guardados este mes.';
+
+  const days=[];const base=new Date(sel+'T12:00');
+  for(let i=13;i>=0;i--){const d=new Date(base);d.setDate(d.getDate()-i);days.push(d.toLocaleDateString('sv'))}
+  const vals=days.map(d=>cierres[d]?cierres[d].yape+cierres[d].efectivo:0);
+  const max=Math.max(daily*1.3,...vals,1),ch=$('chart');
+  ch.querySelectorAll('button').forEach(b=>b.remove());
+  days.forEach((d,i)=>{
+    const b=document.createElement('button');
+    b.className=(vals[i]>=daily&&vals[i]>0?'hit ':'')+(d===sel?'sel':'');
+    b.setAttribute('aria-label',fmtD(d)+': '+money(vals[i]));
+    b.innerHTML='<i style="height:0"></i>';
+    b.onclick=()=>{$('fecha').value=d;loadDay();calc();$('tip').textContent=fmtD(d)+': '+money(vals[i])+(cierres[d]?` (Yape ${money(cierres[d].yape)} · Efectivo ${money(cierres[d].efectivo)})`:' (sin cierre)')};
+    ch.appendChild(b);
+    requestAnimationFrame(()=>requestAnimationFrame(()=>b.firstChild.style.height=(vals[i]/max*100)+'%'));
+  });
+  $('goalLine').style.bottom=(daily/max*100)+'%';
+
+  $('lista').innerHTML=keys.length?'':'<p class="empty">Todavía no guardaste ningún cierre.</p>';
+  keys.slice(0,30).forEach(k=>{
+    const c=cierres[k],t=c.yape+c.efectivo,b=document.createElement('button');
+    b.className='hist';
+    b.innerHTML=`<span class="d">${fmtD(k)}<small>Yape ${money(c.yape)} · Efectivo ${money(c.efectivo)}</small></span><b class="${t>=daily?'okc':'pink'}">${money(t)}</b><span class="x" role="button" aria-label="Borrar">×</span>`;
+    b.onclick=ev=>{
+      if(ev.target.classList.contains('x')){if(confirm('¿Borrar el cierre del '+fmtD(k)+'?')){delete cierres[k];sv('cg_cierres',cierres);loadDay();calc();toast('Cierre borrado')}return}
+      $('fecha').value=k;loadDay();calc();tab('hoy');
+    };
+    $('lista').appendChild(b);
+  });
+}
+
+$('guardar').onclick=()=>{
+  const y=num('yape'),e=num('efectivo');
+  if(y+e===0&&!confirm('El cierre está en S/ 0.00. ¿Guardarlo igual?'))return;
+  cierres[$('fecha').value]={yape:y,efectivo:e};sv('cg_cierres',cierres);
+  calc();toast('Cierre del '+fmtD($('fecha').value)+' guardado');
+};
+
+const names=['hoy','hist','gastos'];
+function tab(t){
+  document.querySelectorAll('.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.t===t));
+  names.forEach(n=>$('p-'+n).classList.toggle('on',n===t));
+  $('pill').style.transform='translateX('+names.indexOf(t)*100+'%)';
+}
+document.querySelectorAll('.tabs button').forEach(b=>b.onclick=()=>tab(b.dataset.t));
+$('cup').onclick=()=>{const {daily}=goalNow(),h=num('yape')+num('efectivo');toast(h>=daily?'¡Meta del día cubierta!':'Te faltan '+money(Math.max(0,daily-h))+' para la meta')};
+tab('hoy');calc();
 </script>
 </body>
 </html>
